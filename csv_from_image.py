@@ -80,23 +80,38 @@ def run_inference_for_single_image(model, image):
 
 
 def output_to_csv(od):
+    min_score = 0.5
     remove_keys = ['raw_detection_scores', 'raw_detection_boxes', 'detection_multiclass_scores', 'detection_anchor_indices', 'num_detections']
     for key in remove_keys:
         od.pop(key)
+    above_min = 0
+    for score in od['detection_scores']:
+        if score >= min_score:
+            above_min+=1
+        else:
+            break
+          
+    i = above_min  
     classes, x_min, y_min, x_max, y_max = [], [], [], [], []
     for box in od['detection_boxes']:
+        if i == 0:
+            break
         # remove * 512 and round for relative coordinates
         y_min.append(round(box[0] * 512))
         x_min.append(round(box[1] * 512))
         y_max.append(round(box[2] * 512))
         x_max.append(round(box[3] * 512))
-    
+        i -= 1
+    i = above_min
     for nr in od['detection_classes']:
+        if i == 0:
+            break
         classes.append(category_index[nr]['name'])
+        i-=1
     
     od.pop('detection_boxes')
     od.pop('detection_classes')
-    df = pd.DataFrame(od)
+    df = pd.DataFrame(od).head(len(y_max))
     df['class'] = classes
     df['x min'] = x_min
     df['y min'] = y_min
